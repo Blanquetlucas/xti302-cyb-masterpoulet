@@ -8,10 +8,9 @@ Groupe : Clément, Lucas et Aymeric.
 
 | Membre | Partie |
 |---|---|
-| Clément | comptes, ACL, sudo (`comptes.csv`, `creer_comptes.sh`, `config/sudoers.d`) |
-| Lucas | SSH, fail2ban, nftables, journaux (`config/ssh`, `config/fail2ban`, `config/nftables.conf`, `analyse_logs.sh`) |
-| Aymeric | sauvegardes, système, installation (`sauvegarde.sh`, `config/systemd`, `config/apt`, `installer.sh`) |
-| tous | `verifier.sh` |
+| Clément | comptes, ACL, sudo, sauvegardes (`comptes.csv`, `creer_comptes.sh`, `config/sudoers.d`, `sauvegarde.sh`, `config/systemd`) |
+| Lucas | SSH, fail2ban, nftables, journaux, système, installation (`config/ssh`, `config/fail2ban`, `config/nftables.conf`, `analyse_logs.sh`, `config/apt`, `installer.sh`) |
+| tous | `verifier.sh`, `DOSSIER.md` |
 
 Le rapport est dans [DOSSIER.md](DOSSIER.md).
 
