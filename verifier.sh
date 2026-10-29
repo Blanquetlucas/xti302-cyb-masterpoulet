@@ -348,6 +348,59 @@ test_J4_support_rien_d_autre() {
     fi
 }
 
+# ======================================================= D1 à D3
+
+test_D1_unattended() {
+    if dpkg -s unattended-upgrades 2>/dev/null | grep -q 'Status: install ok installed' \
+       && apt-config dump | grep -q 'APT::Periodic::Unattended-Upgrade "1"' \
+       && apt-config dump | grep -q 'APT::Periodic::Update-Package-Lists "1"'; then
+        ok "D1" "unattended-upgrades installé et activé (apt-config)"
+    else
+        ko "D1" "mises à jour automatiques non configurées"
+    fi
+}
+
+test_D1_timers_apt() {
+    actif_et_active apt-daily-upgrade.timer && actif_et_active apt-daily.timer \
+        && ok "D1" "timers apt-daily et apt-daily-upgrade actifs" \
+        || ko "D1" "timers apt désactivés"
+}
+
+test_D1_origine_securite() {
+    apt-config dump | grep -A5 'Unattended-Upgrade::Origins-Pattern' | grep -q 'security' \
+        && ok "D1" "les mises à jour de sécurité Debian sont incluses" \
+        || ko "D1" "l'origine debian-security n'est pas dans Origins-Pattern"
+}
+
+test_D2_ecoutes() {
+    local e
+    # on ignore l'écoute locale et les clients DHCP (68) et DHCPv6 (546)
+    e="$(ss -tulpnH | awk '{ print $1, $5, $7 }' \
+        | grep -vE ' (127\.0\.0\.[0-9]+|\[::1\]):' \
+        | grep -vE '^udp \S+:(68|546) ' | grep -vE '^tcp \S+:22 .*sshd')"
+    [[ -z "$e" ]] && ok "D2" "seul sshd (22/tcp) écoute sur le réseau (+ client DHCP)" \
+                  || ko "D2" "écoutes inattendues : $(echo "$e" | tr '\n' ';')"
+}
+
+test_D3_world_writable() {
+    local fs trouves=""
+    for fs in $(findmnt -rn -t ext4,ext3,ext2,xfs,btrfs,vfat -o TARGET); do
+        trouves="$trouves$(find "$fs" -xdev -type f -perm -0002 \
+            -not -path '/tmp/*' -not -path '/var/tmp/*' -not -path '/dev/shm/*' 2>/dev/null)"
+    done
+    [[ -z "$trouves" ]] && ok "D3" "aucun fichier modifiable par tous hors répertoires temporaires" \
+                        || ko "D3" "fichiers modifiables par tous : $(echo "$trouves" | head -5 | tr '\n' ' ')"
+}
+
+test_D3_suid() {
+    local fs trouves inattendus
+    trouves="$(for fs in $(findmnt -rn -t ext4,ext3,ext2,xfs,btrfs,vfat -o TARGET); do
+        find "$fs" -xdev -type f \( -perm -4000 -o -perm -2000 \) 2>/dev/null; done | sort -u)"
+    inattendus="$(comm -23 <(echo "$trouves") <(grep -v '^#' "$SUID_ATTENDUS" | sed '/^$/d' | sort -u))"
+    [[ -z "$inattendus" ]] && ok "D3" "$(echo "$trouves" | wc -l) fichiers SUID/SGID, tous dans suid_attendus.txt" \
+                           || ko "D3" "SUID/SGID inattendus : $(echo "$inattendus" | tr '\n' ' ')"
+}
+
 # ================================================================ main
 
 main() {
