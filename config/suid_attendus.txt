@@ -1,0 +1,20 @@
+# D3 - fichiers SUID/SGID attendus sur srv-masterpoulet (un chemin par ligne)
+# Liste relevée sur la Debian 13 minimale + nos paquets, chaque entrée est
+# expliquée dans l'annexe B du dossier. Tout autre fichier SUID/SGID = KO.
+/usr/bin/chage
+/usr/bin/chfn
+/usr/bin/chsh
+/usr/bin/crontab
+/usr/bin/dotlockfile
+/usr/bin/expiry
+/usr/bin/gpasswd
+/usr/bin/mount
+/usr/bin/newgrp
+/usr/bin/passwd
+/usr/bin/ssh-agent
+/usr/bin/su
+/usr/bin/sudo
+/usr/bin/umount
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/openssh/ssh-keysign
+/usr/sbin/unix_chkpwd
