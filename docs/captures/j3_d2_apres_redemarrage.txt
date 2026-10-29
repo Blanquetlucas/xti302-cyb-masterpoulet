@@ -1,0 +1,35 @@
+# journalctl --list-boots  (journal conservé après redémarrage)
+IDX BOOT ID                          FIRST ENTRY                 LAST ENTRY
+ -2 51a7bc7625b443a29b86bf82cd50ff09 Thu 2026-10-29 11:23:16 CET Thu 2026-10-29 11:24:47 CET
+ -1 cd55631d5cd74661ad7b3a023dfb0e13 Thu 2026-10-29 20:30:14 CET Thu 2026-10-29 20:40:02 CET
+  0 a863ab1e9c5341cfb59589bdfbb7dd52 Thu 2026-10-29 20:33:25 CET Thu 2026-10-29 20:42:07 CET
+
+# nft list ruleset après redémarrage (règles rechargées par nftables.service)
+table inet filtre {
+	chain input {
+		type filter hook input priority filter; policy drop;
+		iif "lo" accept
+		ct state invalid drop
+		ct state established,related accept
+		tcp dport 22 ct state new accept
+		ip protocol icmp icmp type echo-request limit rate 5/second burst 5 packets accept
+		ip protocol icmp icmp type { destination-unreachable, time-exceeded, parameter-problem } accept
+		ip6 nexthdr ipv6-icmp icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } accept
+		ip6 nexthdr ipv6-icmp icmpv6 type echo-request limit rate 5/second burst 5 packets accept
+	}
+
+	chain forward {
+		type filter hook forward priority filter; policy drop;
+	}
+
+	chain output {
+		type filter hook output priority filter; policy accept;
+	}
+}
+
+# ss -tulpn
+Netid State  Recv-Q Send-Q                     Local Address:Port Peer Address:PortProcess                         
+udp   UNCONN 0      0                           192.168.65.5:68        0.0.0.0:*    users:(("dhcpcd",pid=816,fd=3))
+udp   UNCONN 0      0      [fe80::de26:83c9:58d:a471]%enp0s3:546          [::]:*    users:(("dhcpcd",pid=797,fd=3))
+tcp   LISTEN 0      128                              0.0.0.0:22        0.0.0.0:*    users:(("sshd",pid=751,fd=6))  
+tcp   LISTEN 0      128                                 [::]:22           [::]:*    users:(("sshd",pid=751,fd=7))  
