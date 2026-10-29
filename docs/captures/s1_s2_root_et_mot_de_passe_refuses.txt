@@ -1,0 +1,4 @@
+$ ssh root@192.168.65.5
+root@192.168.65.5: Permission denied (publickey).
+$ ssh -o PreferredAuthentications=password lucas@192.168.65.5
+lucas@192.168.65.5: Permission denied (publickey).

@@ -1,0 +1,8 @@
+# systemctl reload nftables
+# nft list tables
+table inet f2b-table
+table inet filtre
+# IP toujours bannie ?
+		elements = { 192.168.65.4 }
+# fail2ban-client set sshd unbanip 192.168.65.4
+1

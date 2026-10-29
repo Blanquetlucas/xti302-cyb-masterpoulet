@@ -1,0 +1,35 @@
+$ sudo analyse_logs.sh -s 3 -d "1 hours ago"
+Rapport SSH de srv-masterpoulet depuis "1 hours ago" (seuil d'alerte : 3 échecs par IP)
+
+Échecs d'authentification : 12
+
+-- Échecs par IP --
+     6  127.0.0.1  <-- ALERTE
+     6  192.168.65.4  <-- ALERTE
+
+-- Comptes visés --
+     3  clement
+     1  mlefevre (non autorisé)
+     2  lucas
+     1  toto (inexistant)
+     5  root (non autorisé)
+
+-- Connexions réussies : 28 --
+     2  support depuis 192.168.65.4
+     5  installeur depuis 192.168.65.1
+    21  clement depuis 192.168.65.1
+
+ALERTE : seuil de 3 échecs atteint
+code de sortie : 2
+
+$ sudo -n /bin/bash
+sudo: il est n�cessaire de saisir un mot de passe
+$ sudo -n journalctl -n1
+sudo: il est n�cessaire de saisir un mot de passe
+$ sudo analyse_logs.sh -d "1 hours ago; id"
+Usage : /usr/local/sbin/analyse_logs.sh [-s|--seuil N] [-d|--depuis PERIODE]
+  -s, --seuil N        échecs par IP déclenchant l'alerte (0 à 9999, défaut 10)
+  -d, --depuis PERIODE "N minutes|hours|days ago", "today", "yesterday"
+                       ou une date AAAA-MM-JJ (défaut "24 hours ago")
+Codes de sortie : 0 normal, 1 erreur d'usage, 2 seuil dépassé
+code de sortie : 1

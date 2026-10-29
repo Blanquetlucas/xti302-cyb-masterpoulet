@@ -1,0 +1,16 @@
+$ nmap -sS -p- 192.168.65.5
+Nmap scan report for 192.168.65.5
+Host is up (0.0016s latency).
+Not shown: 65534 filtered tcp ports (no-response)
+PORT   STATE SERVICE
+22/tcp open  ssh
+MAC Address: 08:00:27:31:DF:49 (Oracle VirtualBox virtual NIC)
+Nmap done: 1 IP address (1 host up) scanned in 129.13 seconds
+
+$ nmap -sU --top-ports 50 192.168.65.5
+Nmap scan report for 192.168.65.5
+Host is up (0.0026s latency).
+All 50 scanned ports on 192.168.65.5 are in ignored states.
+Not shown: 50 open|filtered udp ports (no-response)
+MAC Address: 08:00:27:31:DF:49 (Oracle VirtualBox virtual NIC)
+Nmap done: 1 IP address (1 host up) scanned in 8.96 seconds
