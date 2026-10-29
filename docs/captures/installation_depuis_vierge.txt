@@ -1,0 +1,34 @@
+# sudo /opt/xti302/installer.sh --secrets /root/secrets_admins   (VM revenue au snapshot vierge)
+==> paquets
+==> comptes, groupes et ACL
+compte créé : clement
+compte créé : lucas
+compte créé : aymeric
+compte créé : support
+compte créé : mlefevre
+compte créé : tbonnet
+compte créé : sgarnier
+compte créé : kdiallo
+compte créé : pmercier
+compte créé : cnguyen
+compte créé : ebrun
+compte créé : yfaure
+compte créé : lperrin
+==> sudoers
+==> installeur retiré du groupe sudo
+==> compte d'installation installeur verrouillé
+==> mot de passe défini pour clement
+==> mot de passe défini pour lucas
+==> mot de passe défini pour aymeric
+==> verrouillage de root et des home
+==> SSH
+==> nftables
+==> fail2ban
+==> journal persistant
+==> unattended-upgrades
+==> scripts dans /usr/local/sbin
+==> disque de sauvegarde
+==> /dev/sdb formaté en ext4
+==> timer de sauvegarde
+==> fichiers modifiables par tous
+==> installation terminée, lancer : sudo verifier.sh

@@ -1,0 +1,17 @@
+# 2e exécution de installer.sh (idempotence)
+==> paquets
+==> comptes, groupes et ACL
+==> sudoers
+==> compte d'installation installeur verrouillé
+==> verrouillage de root et des home
+==> SSH
+==> nftables
+==> fail2ban
+==> journal persistant
+==> unattended-upgrades
+==> scripts dans /usr/local/sbin
+==> disque de sauvegarde
+==> timer de sauvegarde
+==> fichiers modifiables par tous
+==> installation terminée, lancer : sudo verifier.sh
+code : 0
