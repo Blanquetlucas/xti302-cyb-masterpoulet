@@ -6,30 +6,30 @@ Contexte B du sujet (cabinet comptable), appliqué à l'entreprise Master Poulet
 
 ## 1. Tableau de conformité
 
-Les tests sont les fonctions de `verifier.sh` ; leur nom commence par l'identifiant de l'exigence. Les numéros ANSSI renvoient au guide BP-028 v2.0 et à la note « Usage sécurisé d'(Open)SSH ». Le site cyber.gouv.fr nous bloquait (vérification anti-robot) pendant la rédaction : la colonne reste à compléter après relecture des guides.
+Les tests sont les fonctions de `verifier.sh` ; leur nom commence par l'identifiant de l'exigence. La colonne ANSSI renvoie au guide « Recommandations de configuration d'un système GNU/Linux » (BP-028 v2.0) et à la note « Usage sécurisé d'(Open)SSH » (notée SSH). Le guide ne traite pas des sauvegardes.
 
 | Exigence | Ce qui a été fait | Tests | ANSSI |
 |---|---|---|---|
-| C1 | `creer_comptes.sh` lit `comptes.csv` (en-tête, lignes vides et `\r` ignorés, login et groupes validés par regex), crée groupes et comptes absents, ajoute les groupes secondaires avec `usermod -a`, installe `authorized_keys` (700/600). Relancé, il ne crée rien. | 6 tests `test_C1_*` (comptes du CSV et leurs groupes, doublons, `acces_ssh`, clés) | |
-| C2 | Répertoires en `root:root 0770`, droits par ACL nommées (`g:comptables:rwx`...), mêmes entrées en ACL par défaut, `o::---`. `depot` : `g:stagiaire:-wx`, aucune entrée stagiaire dans l'ACL par défaut, sticky bit. | 25 tests : une case du tableau par test, `o::---`, ACL par défaut sur un fichier créé, 5 cas sur `depot` | |
-| C3 | `/etc/sudoers.d/masterpoulet` (0440, contrôlé par `visudo -c`) : `%admins ALL=(ALL:ALL) ALL`, `support` limité à `analyse_logs.sh`. Groupe `sudo` vidé. Scripts en `root:root 0755`. | 8 tests `test_C3_*` (`sudo -l -U` pour chaque compte, droits des sudoers, scripts) | |
-| C4 | `passwd -l root` après avoir vérifié qu'un admin a un mot de passe, home en 700, `HOME_MODE 0700`. | 5 tests `test_C4_*` | |
-| S1 | `PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `AuthenticationMethods publickey`. | `sshd -T` + vraie tentative par mot de passe | |
-| S2 | `PermitRootLogin no`, root hors de `acces_ssh`. | `sshd -T` + vraie tentative en root | |
-| S3 | `AllowGroups acces_ssh`. | 2 tests `test_S3_*` | |
-| S4 | `MaxAuthTries 3`, `ChannelTimeout session=10m`, `ClientAliveInterval 300` x 2, `TMOUT=600` en lecture seule. | 3 tests `test_S4_*` | |
-| S5 | `10-durcissement.conf` dans `sshd_config.d`, `sshd -t` avant `systemctl reload ssh`. | 3 tests `test_S5_*` (syntaxe, aucune directive contraire, service) | |
-| J1 | Jail `sshd` : `backend = systemd`, `mode = aggressive`, action `nftables-multiport`, 5 échecs en 10 min, bannissement 15 min. | 4 tests `test_J1_*` (service, jail, action, table `f2b-table`) | |
-| J2 | Table `inet filtre` : input en `policy drop`, `lo`, `invalid drop`, `established,related`, 22/tcp, ICMP limité. Pas de `flush ruleset`. | 6 tests `test_J2_*` | |
-| J3 | `journald.conf.d/persistant.conf` : `Storage=persistent`. | 2 tests `test_J3_*` | |
-| J4 | `analyse_logs.sh` : échecs par IP, comptes visés, connexions réussies ; arguments en liste blanche ; pas de pager ; codes 0/1/2. | 6 tests `test_J4_*` (seuil 0, rapport, arguments, `support`) | |
-| B1 | `sauvegarde.sh` : `rsync -aAXH --numeric-ids --link-dest` vers `/sauvegardes/AAAA-MM-JJ_HHMMSS`, 7 versions, `flock`. Disque monté par UUID, `nofail`. | 5 tests `test_B1_*` (montage, versions, ACL, inode partagé, rotation) | |
-| B2 | `sauvegarde.timer` (2 h, `Persistent=true`), sortie dans journald. | 2 tests `test_B2_*` | |
-| B3 | `/sauvegardes` en `root:admins 0750`. | 2 tests `test_B3_*` | |
-| B4 | Restauration testée (partie 4). | `test_B4_restauration` | |
-| D1 | `unattended-upgrades` + `20auto-upgrades`, origine `debian-security`. | 3 tests `test_D1_*` | |
-| D2 | Seul sshd écoute sur le réseau (annexe A). | `test_D2_ecoutes` | |
-| D3 | Aucun fichier modifiable par tous ; SUID comparés à `config/suid_attendus.txt` (annexe B). | 2 tests `test_D3_*` | |
+| C1 | `creer_comptes.sh` lit `comptes.csv` (en-tête, lignes vides et `\r` ignorés, login et groupes validés par regex), crée groupes et comptes absents, ajoute les groupes secondaires avec `usermod -a`, installe `authorized_keys` (700/600). Relancé, il ne crée rien. | 6 tests `test_C1_*` (comptes du CSV et leurs groupes, doublons, `acces_ssh`, clés) | BP-028 R33 ; SSH R21 |
+| C2 | Répertoires en `root:root 0770`, droits par ACL nommées (`g:comptables:rwx`...), mêmes entrées en ACL par défaut, `o::---`. `depot` : `g:stagiaire:-wx`, aucune entrée stagiaire dans l'ACL par défaut, sticky bit. | 25 tests : une case du tableau par test, `o::---`, ACL par défaut sur un fichier créé, 5 cas sur `depot` | BP-028 R50, R54 |
+| C3 | `/etc/sudoers.d/masterpoulet` (0440, contrôlé par `visudo -c`) : `%admins ALL=(ALL:ALL) ALL`, `support` limité à `analyse_logs.sh`. Groupe `sudo` vidé. Scripts en `root:root 0755`. | 8 tests `test_C3_*` (`sudo -l -U` pour chaque compte, droits des sudoers, scripts) | BP-028 R30, R38, R39 |
+| C4 | `passwd -l root` après avoir vérifié qu'un admin a un mot de passe, home en 700, `HOME_MODE 0700`. | 5 tests `test_C4_*` | BP-028 R33, R50 |
+| S1 | `PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `AuthenticationMethods publickey`. | `sshd -T` + vraie tentative par mot de passe | SSH R17 |
+| S2 | `PermitRootLogin no`, root hors de `acces_ssh`. | `sshd -T` + vraie tentative en root | SSH R21 |
+| S3 | `AllowGroups acces_ssh`. | 2 tests `test_S3_*` | SSH R22 |
+| S4 | `MaxAuthTries 3`, `ChannelTimeout session=10m`, `ClientAliveInterval 300` x 2, `TMOUT=600` en lecture seule. | 3 tests `test_S4_*` | BP-028 R32 |
+| S5 | `10-durcissement.conf` dans `sshd_config.d`, `sshd -t` avant `systemctl reload ssh`. | 3 tests `test_S5_*` (syntaxe, aucune directive contraire, service) | SSH R23, R27, R28 (même fichier) |
+| J1 | Jail `sshd` : `backend = systemd`, `mode = aggressive`, action `nftables-multiport`, 5 échecs en 10 min, bannissement 15 min. | 4 tests `test_J1_*` (service, jail, action, table `f2b-table`) | BP-028 R79 |
+| J2 | Table `inet filtre` : input en `policy drop`, `lo`, `invalid drop`, `established,related`, 22/tcp, ICMP limité. Pas de `flush ruleset`. | 6 tests `test_J2_*` | BP-028 R79, R80 |
+| J3 | `journald.conf.d/persistant.conf` : `Storage=persistent`. | 2 tests `test_J3_*` | BP-028 R71 |
+| J4 | `analyse_logs.sh` : échecs par IP, comptes visés, connexions réussies ; arguments en liste blanche ; pas de pager ; codes 0/1/2. | 6 tests `test_J4_*` (seuil 0, rapport, arguments, `support`) | BP-028 R71, R79 |
+| B1 | `sauvegarde.sh` : `rsync -aAXH --numeric-ids --link-dest` vers `/sauvegardes/AAAA-MM-JJ_HHMMSS`, 7 versions, `flock`. Disque monté par UUID, `nofail`. | 5 tests `test_B1_*` (montage, versions, ACL, inode partagé, rotation) | aucune (hors périmètre du guide) |
+| B2 | `sauvegarde.timer` (2 h, `Persistent=true`), sortie dans journald. | 2 tests `test_B2_*` | aucune |
+| B3 | `/sauvegardes` en `root:admins 0750`. | 2 tests `test_B3_*` | BP-028 R50 |
+| B4 | Restauration testée (partie 4). | `test_B4_restauration` | aucune |
+| D1 | `unattended-upgrades` + `20auto-upgrades`, origine `debian-security`. | 3 tests `test_D1_*` | BP-028 R59, R61 |
+| D2 | Seul sshd écoute sur le réseau (annexe A). | `test_D2_ecoutes` | BP-028 R62, R80 |
+| D3 | Aucun fichier modifiable par tous ; SUID comparés à `config/suid_attendus.txt` (annexe B). | 2 tests `test_D3_*` | BP-028 R54, R56, R57 |
 
 ## 2. Choix techniques
 
