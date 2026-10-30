@@ -1,0 +1,14 @@
+login;nom;groupe_principal;groupes_secondaires
+clement;Clément Berton;admins;acces_ssh
+lucas;Lucas Blanquet;admins;acces_ssh
+aymeric;Aymeric;admins;acces_ssh
+support;Compte support;support;acces_ssh
+mlefevre;Marie Lefèvre;comptables;
+tbonnet;Thomas Bonnet;comptables;
+sgarnier;Sophie Garnier;rh;
+kdiallo;Karim Diallo;rh;
+pmercier;Philippe Mercier;direction;
+cnguyen;Claire Nguyen;direction;
+ebrun;Emma Brun;stagiaire;
+yfaure;Yanis Faure;stagiaire;
+lperrin;Léo Perrin;stagiaire;
