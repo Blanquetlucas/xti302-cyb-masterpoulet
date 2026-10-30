@@ -104,6 +104,324 @@ fichier_test() {
     sudo -u "$1" sh -c "echo test > '$f'" 2>/dev/null && echo "$f"
 }
 
+# ======================================================= C1 comptes
+
+test_C1_comptes_csv() {
+    local l login principal secondaires g manque=""
+    while IFS=';' read -r login _ principal secondaires; do
+        login="${login//$'\r'/}"; principal="${principal//$'\r'/}"
+        secondaires="${secondaires//$'\r'/}"
+        [[ -z "$login" || "$login" == login ]] && continue
+        if ! id "$login" >/dev/null 2>&1; then
+            manque="$manque $login(absent)"; continue
+        fi
+        [[ "$(id -gn "$login")" == "$principal" ]] || manque="$manque $login(groupe principal)"
+        for g in ${secondaires//,/ }; do
+            id -nG "$login" | tr ' ' '\n' | grep -qx "$g" || manque="$manque $login($g)"
+        done
+    done < "$CSV"
+    l="$(comptes_csv | wc -l)"
+    if [[ -z "$manque" ]]; then
+        ok "C1" "les $l comptes de comptes.csv existent avec les bons groupes"
+    else
+        ko "C1" "écarts avec comptes.csv :$manque"
+    fi
+}
+
+test_C1_groupes() {
+    local g manque=""
+    for g in admins support acces_ssh comptables rh direction stagiaire; do
+        getent group "$g" >/dev/null || manque="$manque $g"
+    done
+    [[ -z "$manque" ]] && ok "C1" "groupes admins, support, acces_ssh et métier présents" \
+                       || ko "C1" "groupes absents :$manque"
+}
+
+test_C1_deux_par_groupe() {
+    local g n faible=""
+    for g in comptables rh direction stagiaire; do
+        n="$(awk -F';' -v g="$g" 'NR > 1 && $3 == g' "$CSV" | wc -l)"
+        [[ $n -ge 2 ]] || faible="$faible $g($n)"
+    done
+    [[ -z "$faible" ]] && ok "C1" "au moins 2 utilisateurs par groupe métier" \
+                       || ko "C1" "groupes métier avec moins de 2 comptes :$faible"
+}
+
+test_C1_pas_de_doublon() {
+    local d
+    d="$(cut -d: -f1 /etc/passwd | sort | uniq -d; cut -d: -f1 /etc/group | sort | uniq -d; cut -d: -f3 /etc/passwd | sort | uniq -d)"
+    [[ -z "$d" ]] && ok "C1" "aucun doublon de compte, de groupe ou d'UID" \
+                  || ko "C1" "doublons : $(echo "$d" | tr '\n' ' ')"
+}
+
+test_C1_acces_ssh() {
+    local attendus reels
+    attendus="$(awk -F';' 'NR > 1 && $4 ~ /(^|,)acces_ssh(,|\r?$)/ { print $1 }' "$CSV" | tr -d '\r' | sort)"
+    reels="$(getent group acces_ssh | cut -d: -f4 | tr ',' '\n' | sed '/^$/d' | sort)"
+    # membres dont c'est le groupe principal
+    if [[ "$attendus" == "$reels" ]]; then
+        ok "C1" "acces_ssh contient exactement : $(echo "$reels" | tr '\n' ' ')"
+    else
+        ko "C1" "acces_ssh contient : $(echo "$reels" | tr '\n' ' ')(attendu : $(echo "$attendus" | tr '\n' ' '))"
+    fi
+}
+
+test_C1_cles_ssh() {
+    local u h mauvais=""
+    for u in $(getent group acces_ssh | cut -d: -f4 | tr ',' ' '); do
+        h="$(getent passwd "$u" | cut -d: -f6)"
+        [[ "$(stat -c '%U %a' "$h/.ssh" 2>/dev/null)" == "$u 700" && \
+           "$(stat -c '%U %a' "$h/.ssh/authorized_keys" 2>/dev/null)" == "$u 600" ]] \
+            || mauvais="$mauvais $u"
+    done
+    [[ -z "$mauvais" ]] && ok "C1" "authorized_keys installés (700/600, propriétaire l'utilisateur)" \
+                        || ko "C1" "clés absentes ou mauvais droits :$mauvais"
+}
+
+# ======================================================= C2 droits /srv
+
+test_C2_dossiers_clients_comptables() { verifier_droits comptables /srv/dossiers_clients rwx; }
+test_C2_dossiers_clients_rh()         { verifier_droits rh /srv/dossiers_clients ---; }
+test_C2_dossiers_clients_direction()  { verifier_droits direction /srv/dossiers_clients r-x; }
+test_C2_dossiers_clients_stagiaire()  { verifier_droits stagiaire /srv/dossiers_clients ---; }
+test_C2_rh_comptables()               { verifier_droits comptables /srv/rh ---; }
+test_C2_rh_rh()                       { verifier_droits rh /srv/rh rwx; }
+test_C2_rh_direction()                { verifier_droits direction /srv/rh r-x; }
+test_C2_rh_stagiaire()                { verifier_droits stagiaire /srv/rh ---; }
+test_C2_commun_comptables()           { verifier_droits comptables /srv/commun rwx; }
+test_C2_commun_rh()                   { verifier_droits rh /srv/commun rwx; }
+test_C2_commun_direction()            { verifier_droits direction /srv/commun rwx; }
+test_C2_commun_stagiaire()            { verifier_droits stagiaire /srv/commun r-x; }
+test_C2_depot_comptables()            { verifier_droits comptables /srv/commun/depot rwx; }
+test_C2_depot_rh()                    { verifier_droits rh /srv/commun/depot rwx; }
+test_C2_depot_direction()             { verifier_droits direction /srv/commun/depot rwx; }
+test_C2_depot_stagiaire()             { verifier_droits stagiaire /srv/commun/depot -wx; }
+
+test_C2_autres_aucun_acces() {
+    local d mauvais=""
+    for d in /srv/dossiers_clients /srv/rh /srv/commun /srv/commun/depot; do
+        getfacl -p "$d" 2>/dev/null | grep -qx 'other::---' || mauvais="$mauvais $d"
+        getfacl -p "$d" 2>/dev/null | grep -qx 'default:other::---' || mauvais="$mauvais $d(défaut)"
+    done
+    [[ -z "$mauvais" ]] && ok "C2" "o::--- (accès et défaut) sur les 4 répertoires" \
+                        || ko "C2" "les autres ont des droits sur :$mauvais"
+}
+
+test_C2_acl_defaut_dossiers_clients() {
+    local f c d r s
+    c="$(membre comptables)"; d="$(membre direction)"; r="$(membre rh)"; s="$(membre stagiaire)"
+    f="$(fichier_test "$c" /srv/dossiers_clients)"
+    if [[ -n "$f" ]] && sudo -u "$d" test -r "$f" && ! sudo -u "$d" test -w "$f" \
+       && ! sudo -u "$r" test -r "$f" && ! sudo -u "$s" test -r "$f"; then
+        ok "C2" "nouveau fichier de dossiers_clients : direction lit, rh et stagiaire non"
+    else
+        ko "C2" "ACL par défaut de dossiers_clients non appliquées au nouveau fichier"
+    fi
+}
+
+test_C2_acl_defaut_rh() {
+    local f r d c
+    r="$(membre rh)"; d="$(membre direction)"; c="$(membre comptables)"
+    f="$(fichier_test "$r" /srv/rh)"
+    if [[ -n "$f" ]] && sudo -u "$d" test -r "$f" && ! sudo -u "$d" test -w "$f" \
+       && ! sudo -u "$c" test -r "$f"; then
+        ok "C2" "nouveau fichier de rh : direction lit, comptables non"
+    else
+        ko "C2" "ACL par défaut de /srv/rh non appliquées au nouveau fichier"
+    fi
+}
+
+test_C2_acl_defaut_commun() {
+    local f r c s
+    r="$(membre rh)"; c="$(membre comptables)"; s="$(membre stagiaire)"
+    f="$(fichier_test "$r" /srv/commun)"
+    if [[ -n "$f" ]] && sudo -u "$c" test -w "$f" && sudo -u "$s" test -r "$f" \
+       && ! sudo -u "$s" test -w "$f"; then
+        ok "C2" "nouveau fichier de commun : comptables écrit, stagiaire lit seulement"
+    else
+        ko "C2" "ACL par défaut de /srv/commun non appliquées au nouveau fichier"
+    fi
+}
+
+test_C2_depot_stagiaire_depose() {
+    local s1 f
+    s1="$(membre_n stagiaire 1)"
+    f="$(fichier_test "$s1" /srv/commun/depot)"
+    if [[ -n "$f" ]] && sudo -u "$s1" test -r "$f"; then
+        ok "C2" "un stagiaire ($s1) peut déposer un fichier dans depot et relire le sien"
+    else
+        ko "C2" "le stagiaire $s1 ne peut pas déposer dans depot"
+    fi
+}
+
+test_C2_depot_stagiaire_ne_lit_pas_autre() {
+    local s1 s2 f
+    s1="$(membre_n stagiaire 1)"; s2="$(membre_n stagiaire 2)"
+    f="/srv/commun/depot/.verif_${s1}_$$"
+    [[ -f "$f" ]] || f="$(fichier_test "$s1" /srv/commun/depot)"
+    if [[ -n "$f" ]] && ! sudo -u "$s2" test -r "$f" && ! sudo -u "$s2" test -w "$f"; then
+        ok "C2" "un stagiaire ($s2) ne lit ni n'écrit le dépôt d'un autre ($s1)"
+    else
+        ko "C2" "$s2 a accès au fichier déposé par $s1"
+    fi
+}
+
+test_C2_depot_stagiaire_ne_liste_pas() {
+    local s
+    s="$(membre stagiaire)"
+    if ! sudo -u "$s" ls /srv/commun/depot >/dev/null 2>&1; then
+        ok "C2" "un stagiaire ne peut pas lister depot"
+    else
+        ko "C2" "un stagiaire peut lister /srv/commun/depot"
+    fi
+}
+
+test_C2_depot_sticky() {
+    local s1 s2 f
+    s1="$(membre_n stagiaire 1)"; s2="$(membre_n stagiaire 2)"
+    f="/srv/commun/depot/.verif_${s1}_$$"
+    [[ -f "$f" ]] || f="$(fichier_test "$s1" /srv/commun/depot)"
+    # sudo rm échoue normalement ; s'il réussit, le fichier de test disparaît,
+    # ce qui ne touche que nos propres fichiers de test
+    if [[ -k /srv/commun/depot ]] \
+       && ! sudo -u "$s2" rm -f "$f" 2>/dev/null && [[ -f "$f" ]]; then
+        ok "C2" "sticky bit sur depot : $s2 ne peut pas supprimer le fichier de $s1"
+    else
+        ko "C2" "pas de sticky bit sur depot ou suppression possible par un autre stagiaire"
+    fi
+}
+
+test_C2_depot_comptable_lit_depot() {
+    local s c f
+    s="$(membre stagiaire)"; c="$(membre comptables)"
+    f="/srv/commun/depot/.verif_${s}_$$"
+    [[ -f "$f" ]] || f="$(fichier_test "$s" /srv/commun/depot)"
+    if [[ -n "$f" ]] && sudo -u "$c" test -r "$f"; then
+        ok "C2" "les comptables lisent les fichiers déposés par les stagiaires"
+    else
+        ko "C2" "les comptables ne lisent pas les dépôts des stagiaires"
+    fi
+}
+
+# ======================================================= C3 sudo
+
+test_C3_admins_sudo() {
+    local a manque=""
+    for a in $(awk -F';' 'NR > 1 && $3 == "admins" { print $1 }' "$CSV" | tr -d '\r'); do
+        sudo -l -U "$a" 2>/dev/null | grep -q '(ALL : ALL) ALL' || manque="$manque $a"
+    done
+    [[ -z "$manque" ]] && ok "C3" "les administrateurs ont sudo" \
+                       || ko "C3" "administrateurs sans sudo :$manque"
+}
+
+test_C3_admins_avec_mot_de_passe() {
+    # on ignore les commentaires
+    if grep -rhsE '^[^#]*NOPASSWD' /etc/sudoers /etc/sudoers.d/ | grep -vq '^support[[:space:]]'; then
+        ko "C3" "NOPASSWD présent pour un autre compte que support"
+    else
+        ok "C3" "pas de NOPASSWD pour les administrateurs"
+    fi
+}
+
+test_C3_support() {
+    local cmds
+    cmds="$(sudo -l -U support 2>/dev/null | sed -n '/may run the following/,$p' | tail -n +2 | sed 's/^ *//')"
+    if [[ "$cmds" == "(root) NOPASSWD: $SBIN/analyse_logs.sh" ]]; then
+        ok "C3" "le compte support ne peut lancer que analyse_logs.sh"
+    else
+        ko "C3" "droits sudo de support : $(echo "$cmds" | tr '\n' ' ')"
+    fi
+}
+
+test_C3_aucun_autre_sudo() {
+    local u admins mauvais=""
+    admins=" $(awk -F';' 'NR > 1 && $3 == "admins" { printf "%s ", $1 }' "$CSV" | tr -d '\r')"
+    while read -r u; do
+        [[ "$u" == root || "$u" == support || "$admins" == *" $u "* ]] && continue
+        sudo -l -U "$u" </dev/null 2>/dev/null | grep -q 'is not allowed to run sudo' || mauvais="$mauvais $u"
+    done < <(awk -F: '$3 == 0 || $3 >= 1000 && $1 != "nobody" { print $1 }' /etc/passwd)
+    [[ -z "$mauvais" ]] && ok "C3" "aucun autre compte n'a sudo (compte d'installation compris)" \
+                        || ko "C3" "comptes avec sudo non prévus :$mauvais"
+}
+
+test_C3_groupe_sudo_vide() {
+    local m
+    m="$(getent group sudo | cut -d: -f4)"
+    [[ -z "$m" ]] && ok "C3" "le groupe sudo est vide" \
+                  || ko "C3" "membres du groupe sudo : $m"
+}
+
+test_C3_fichiers_sudoers() {
+    local f mauvais=""
+    for f in /etc/sudoers /etc/sudoers.d/*; do
+        [[ "$(stat -c '%U:%G %a' "$f")" == "root:root 440" ]] || mauvais="$mauvais $f"
+    done
+    if [[ -z "$mauvais" ]] && visudo -cq; then
+        ok "C3" "fichiers sudoers en 0440 root et syntaxe valide (visudo -c)"
+    else
+        ko "C3" "sudoers invalide ou mauvais droits :$mauvais"
+    fi
+}
+
+test_C3_sudoers_d_attendu() {
+    local f inconnus=""
+    for f in /etc/sudoers.d/*; do
+        case "$(basename "$f")" in README|masterpoulet) ;; *) inconnus="$inconnus $f" ;; esac
+    done
+    [[ -z "$inconnus" ]] && ok "C3" "aucun fichier inattendu dans /etc/sudoers.d" \
+                         || ko "C3" "fichiers inattendus :$inconnus"
+}
+
+test_C3_scripts_root() {
+    local s mauvais=""
+    for s in analyse_logs.sh sauvegarde.sh creer_comptes.sh verifier.sh; do
+        script_root_755 "$SBIN/$s" || mauvais="$mauvais $s"
+    done
+    [[ "$(stat -c '%U %a' "$SBIN")" == "root 755" ]] || mauvais="$mauvais $SBIN"
+    [[ -z "$mauvais" ]] && ok "C3" "scripts de $SBIN en root:root 755 (support ne peut pas modifier analyse_logs.sh)" \
+                        || ko "C3" "mauvais propriétaire/droits :$mauvais"
+}
+
+# ======================================================= C4
+
+test_C4_root_verrouille() {
+    [[ "$(passwd -S root | awk '{ print $2 }')" == "L" ]] && ok "C4" "root est verrouillé" \
+                                                          || ko "C4" "root n'est pas verrouillé"
+}
+
+test_C4_home_prives() {
+    local h mauvais=""
+    for h in /home/*/ /root/; do
+        [[ "$(stat -c %a "$h")" == 700 ]] || mauvais="$mauvais $h"
+    done
+    [[ -z "$mauvais" ]] && ok "C4" "répertoires personnels en 700" \
+                        || ko "C4" "home lisibles par d'autres :$mauvais"
+}
+
+test_C4_home_illisible_autre() {
+    local a b
+    a="$(membre comptables)"; b="$(membre rh)"
+    if ! sudo -u "$b" ls "$(getent passwd "$a" | cut -d: -f6)" >/dev/null 2>&1; then
+        ok "C4" "$b ne peut pas lister le home de $a"
+    else
+        ko "C4" "$b peut lister le home de $a"
+    fi
+}
+
+test_C4_home_mode() {
+    grep -qE '^\s*HOME_MODE\s+0?700\s*$' /etc/login.defs && ok "C4" "HOME_MODE 0700 dans login.defs" \
+                                                          || ko "C4" "HOME_MODE absent ou différent de 0700"
+}
+
+test_C4_admin_mot_de_passe() {
+    local a n=0
+    for a in $(awk -F';' 'NR > 1 && $3 == "admins" { print $1 }' "$CSV" | tr -d '\r'); do
+        [[ "$(passwd -S "$a" | awk '{ print $2 }')" == "P" ]] && n=$((n + 1))
+    done
+    [[ $n -ge 1 ]] && ok "C4" "$n administrateur(s) avec mot de passe (accès console de secours)" \
+                   || ko "C4" "aucun administrateur n'a de mot de passe : plus d'accès console"
+}
+
 # ======================================================= S1 à S5
 
 test_S1_mot_de_passe_refuse() {
