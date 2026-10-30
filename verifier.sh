@@ -666,6 +666,103 @@ test_J4_support_rien_d_autre() {
     fi
 }
 
+# ======================================================= B1 à B4
+
+versions() {
+    find "$SAUV" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended \
+        -regex '.*/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{6}' 2>/dev/null | sort
+}
+
+test_B1_disque_monte() {
+    local src racine
+    src="$(findmnt -no SOURCE "$SAUV" 2>/dev/null)"
+    racine="$(findmnt -no SOURCE /)"
+    if [[ -n "$src" && "$src" != "$racine" ]] && grep -qE "^UUID=\S+\s+$SAUV\s" /etc/fstab; then
+        ok "B1" "$SAUV monté depuis $src (second disque, UUID dans fstab)"
+    else
+        ko "B1" "$SAUV n'est pas monté sur le second disque"
+    fi
+}
+
+test_B1_versions_datees() {
+    local n
+    n="$(versions | wc -l)"
+    if [[ $n -ge 1 && -L "$SAUV/derniere" && -d "$SAUV/derniere/srv" && -d "$SAUV/derniere/etc" ]]; then
+        ok "B1" "$n version(s) datée(s), la dernière contient /srv et /etc"
+    else
+        ko "B1" "aucune version datée complète dans $SAUV"
+    fi
+}
+
+test_B1_acl_conservees() {
+    local a b
+    a="$(getfacl -p /srv/commun/depot 2>/dev/null)"
+    b="$(getfacl -p "$SAUV/derniere/srv/commun/depot" 2>/dev/null | sed "s#$SAUV/derniere##")"
+    [[ -n "$a" && "$a" == "$b" ]] && ok "B1" "droits et ACL conservés dans la sauvegarde" \
+                                  || ko "B1" "ACL de /srv/commun/depot différentes dans la sauvegarde"
+}
+
+test_B1_incremental() {
+    local v a b
+    mapfile -t v < <(versions)
+    if [[ ${#v[@]} -lt 2 ]]; then
+        grep -q -- '--link-dest' "$SBIN/sauvegarde.sh" \
+            && ok "B1" "une seule version pour l'instant, sauvegarde.sh utilise --link-dest" \
+            || ko "B1" "sauvegarde.sh n'est pas incrémental"
+        return
+    fi
+    a="$(stat -c %i "${v[-2]}/etc/debian_version")"
+    b="$(stat -c %i "${v[-1]}/etc/debian_version")"
+    [[ "$a" == "$b" ]] && ok "B1" "incrémental : fichier inchangé partagé entre 2 versions (inode $a)" \
+                       || ko "B1" "fichier inchangé recopié (inodes $a / $b)"
+}
+
+test_B1_rotation() {
+    local n g
+    n="$(versions | wc -l)"
+    g="$(grep -oE '^GARDER=[0-9]+' "$SBIN/sauvegarde.sh" | cut -d= -f2)"
+    [[ -n "$g" && $g -ge 7 && $n -le $g ]] && ok "B1" "rotation : $g versions gardées, $n présentes" \
+                                           || ko "B1" "rotation incorrecte (GARDER='$g', $n versions)"
+}
+
+test_B2_timer() {
+    actif_et_active sauvegarde.timer && ok "B2" "sauvegarde.timer actif et activé ($(systemctl show -p NextElapseUSecRealtime --value sauvegarde.timer))" \
+                                     || ko "B2" "sauvegarde.timer arrêté ou désactivé"
+}
+
+test_B2_journalisee() {
+    journalctl --no-pager -q -t sauvegarde 2>/dev/null | grep -q 'sauvegarde terminée' \
+        && ok "B2" "exécutions de la sauvegarde présentes dans le journal" \
+        || ko "B2" "aucune trace de sauvegarde dans le journal"
+}
+
+test_B3_droits() {
+    [[ "$(stat -c '%U:%G %a' "$SAUV" 2>/dev/null)" == "root:admins 750" ]] \
+        && ok "B3" "$SAUV en root:admins 750" \
+        || ko "B3" "$SAUV en $(stat -c '%U:%G %a' "$SAUV" 2>/dev/null) (attendu root:admins 750)"
+}
+
+test_B3_non_admin() {
+    local u a
+    u="$(membre direction)"; a="$(membre admins)"
+    if ! sudo -u "$u" ls "$SAUV" >/dev/null 2>&1 && sudo -u "$a" ls "$SAUV" >/dev/null 2>&1; then
+        ok "B3" "$a liste les sauvegardes, $u non"
+    else
+        ko "B3" "accès aux sauvegardes incorrect pour $u ou $a"
+    fi
+}
+
+test_B4_restauration() {
+    TMPD="${TMPD:-$(mktemp -d)}"
+    if rsync -aAX "$SAUV/derniere/etc/debian_version" "$SAUV/derniere/srv/commun/depot" "$TMPD/" 2>/dev/null \
+       && cmp -s "$TMPD/debian_version" /etc/debian_version \
+       && [[ "$(getfacl -cp "$TMPD/depot" 2>/dev/null)" == "$(getfacl -cp /srv/commun/depot)" ]]; then
+        ok "B4" "restauration testée dans $TMPD : contenu et ACL identiques"
+    else
+        ko "B4" "la restauration depuis $SAUV/derniere échoue"
+    fi
+}
+
 # ======================================================= D1 à D3
 
 test_D1_unattended() {
