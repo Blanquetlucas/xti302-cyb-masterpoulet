@@ -1,0 +1,29 @@
+# Bannissement de la Kali d'Aymeric (10.3.219.155), vu depuis le serveur
+
+# journalctl -t sshd-session  (tentatives refusées)
+2026-10-30T09:35:13+01:00 srv-masterpoulet sshd-session[3787]: User root from 10.3.219.155 not allowed because none of user's groups are listed in AllowGroups
+2026-10-30T09:35:13+01:00 srv-masterpoulet sshd-session[3787]: Connection closed by invalid user root 10.3.219.155 port 44884 [preauth]
+2026-10-30T09:35:13+01:00 srv-masterpoulet sshd[733]: srclimit_penalise: ipv4: new 10.3.219.155/32 deferred penalty of 1 seconds for penalty: connections without attempting authentication
+2026-10-30T09:35:14+01:00 srv-masterpoulet sshd-session[3789]: Connection closed by authenticating user lucas 10.3.219.155 port 44894 [preauth]
+2026-10-30T09:35:14+01:00 srv-masterpoulet sshd-session[3791]: Invalid user toto from 10.3.219.155 port 44908
+2026-10-30T09:35:14+01:00 srv-masterpoulet sshd-session[3791]: Connection closed by invalid user toto 10.3.219.155 port 44908 [preauth]
+
+# grep 10.3.219.155 /var/log/fail2ban.log
+2026-10-30 09:35:13,880 fail2ban.filter         [2273]: INFO    [sshd] Found 10.3.219.155 - 2026-10-30 09:35:13
+2026-10-30 09:35:13,880 fail2ban.filter         [2273]: INFO    [sshd] Found 10.3.219.155 - 2026-10-30 09:35:13
+2026-10-30 09:35:14,300 fail2ban.filter         [2273]: INFO    [sshd] Found 10.3.219.155 - 2026-10-30 09:35:14
+2026-10-30 09:35:15,180 fail2ban.filter         [2273]: INFO    [sshd] Found 10.3.219.155 - 2026-10-30 09:35:14
+2026-10-30 09:35:15,181 fail2ban.filter         [2273]: INFO    [sshd] Found 10.3.219.155 - 2026-10-30 09:35:14
+2026-10-30 09:35:15,184 fail2ban.actions        [2273]: NOTICE  [sshd] Ban 10.3.219.155
+2026-10-30 09:50:15,045 fail2ban.actions        [2273]: NOTICE  [sshd] Unban 10.3.219.155
+
+# analyse_logs.sh -s 3 -d 2026-10-30
+Rapport SSH de srv-masterpoulet depuis "2026-10-30" (seuil d'alerte : 3 échecs par IP)
+
+Échecs d'authentification : 5
+
+-- Échecs par IP --
+     2  127.0.0.1
+     3  10.3.219.155  <-- ALERTE
+
+-- Comptes visés --
