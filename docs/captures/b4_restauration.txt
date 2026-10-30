@@ -1,0 +1,31 @@
+# incident : le fichier est supprimé
+# 1. versions disponibles
+2026-10-29_112805
+2026-10-29_114108
+2026-10-29_114110
+derniere
+lost+found
+# 2. versions qui contiennent le fichier
+-rw-rw----+ 2 mlefevre comptables 34 29 oct.  11:41 /sauvegardes/2026-10-29_114108/srv/dossiers_clients/bilan_2025.txt
+-rw-rw----+ 2 mlefevre comptables 34 29 oct.  11:41 /sauvegardes/2026-10-29_114110/srv/dossiers_clients/bilan_2025.txt
+# 3. contenu dans /sauvegardes/2026-10-29_114110
+Bilan 2025 - client Poulet & Fils
+# 4. restauration
+rsync -aAX --numeric-ids /sauvegardes/2026-10-29_114110/srv/dossiers_clients/bilan_2025.txt /srv/dossiers_clients/
+# 5. contrôle
+total 4
+-rw-rw----+ 1 mlefevre comptables 34 29 oct.  11:41 bilan_2025.txt
+# file: /srv/dossiers_clients/bilan_2025.txt
+# owner: mlefevre
+# group: comptables
+user::rw-
+group::---
+group:comptables:rwx	#effective:rw-
+group:direction:r-x	#effective:r--
+mask::rw-
+other::---
+
+lecture par pmercier (direction) :
+Bilan 2025 - client Poulet & Fils
+lecture par sgarnier (rh) :
+cat: /srv/dossiers_clients/bilan_2025.txt: Permission non accord�e

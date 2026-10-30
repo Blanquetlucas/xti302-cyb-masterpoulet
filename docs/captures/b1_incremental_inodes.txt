@@ -1,0 +1,25 @@
+# un comptable crée un fichier client
+# file: /srv/dossiers_clients/bilan_2025.txt
+# owner: mlefevre
+# group: comptables
+user::rw-
+group::---
+group:comptables:rwx	#effective:rw-
+group:direction:r-x	#effective:r--
+mask::rw-
+other::---
+
+# deux sauvegardes
+sauvegarde terminée : /sauvegardes/2026-10-29_114108
+sauvegarde terminée : /sauvegardes/2026-10-29_114110
+total 28
+drwxr-xr-x 4 root root  4096 29 oct.  11:28 2026-10-29_112805
+drwxr-xr-x 4 root root  4096 29 oct.  11:41 2026-10-29_114108
+drwxr-xr-x 4 root root  4096 29 oct.  11:41 2026-10-29_114110
+lrwxrwxrwx 1 root root    17 29 oct.  11:41 derniere -> 2026-10-29_114110
+drwx------ 2 root root 16384 29 oct.  11:28 lost+found
+# inode du même fichier inchangé dans les deux dernières versions
+1648 2 /sauvegardes/2026-10-29_114108/srv/dossiers_clients/bilan_2025.txt
+1648 2 /sauvegardes/2026-10-29_114110/srv/dossiers_clients/bilan_2025.txt
+5,3M	/sauvegardes/2026-10-29_114108
+744K	/sauvegardes/2026-10-29_114110

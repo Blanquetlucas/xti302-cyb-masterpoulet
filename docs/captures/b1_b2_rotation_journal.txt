@@ -1,0 +1,25 @@
+# avant : 3 versions
+Job for sauvegarde.service failed because start of the service was attempted too often.
+See "systemctl status sauvegarde.service" and "journalctl -xeu sauvegarde.service" for details.
+To force a start use "systemctl reset-failed sauvegarde.service"
+followed by "systemctl start sauvegarde.service" again.
+# après 6 exécutions par le service :
+2026-10-29_114108
+2026-10-29_114110
+2026-10-29_114204
+2026-10-29_114205
+2026-10-29_114207
+2026-10-29_114209
+2026-10-29_114210
+derniere
+lost+found
+# journal
+oct. 29 11:42:04 srv-masterpoulet sauvegarde[7198]: sauvegarde terminée : /sauvegardes/2026-10-29_114204
+oct. 29 11:42:06 srv-masterpoulet sauvegarde[7221]: sauvegarde terminée : /sauvegardes/2026-10-29_114205
+oct. 29 11:42:08 srv-masterpoulet sauvegarde[7244]: sauvegarde terminée : /sauvegardes/2026-10-29_114207
+oct. 29 11:42:09 srv-masterpoulet sauvegarde[7267]: sauvegarde terminée : /sauvegardes/2026-10-29_114209
+oct. 29 11:42:11 srv-masterpoulet sauvegarde[7290]: sauvegarde terminée : /sauvegardes/2026-10-29_114210
+oct. 29 11:42:11 srv-masterpoulet sauvegarde[7296]: version supprimée : /sauvegardes/2026-10-29_112805
+# verrou : deux exécutions en même temps
+sauvegarde: une sauvegarde est déjà en cours
+code=4
