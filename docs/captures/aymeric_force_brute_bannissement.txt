@@ -1,0 +1,18 @@
+— tentative 1
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+— tentative 2
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+— tentative 3
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+— tentative 4
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+— tentative 5
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+— tentative 6
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+— tentative 7
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+— tentative 8
+ssh: connect to host 10.3.219.160 port 22: Connection refused
+$ nmap -Pn -p 22 apres le bannissement
+22/tcp filtered ssh
