@@ -1,0 +1,11 @@
+[Unit]
+Description=Sauvegarde quotidienne
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+RandomizedDelaySec=10m
+# rattrape la sauvegarde si la VM était éteinte à 2 h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
