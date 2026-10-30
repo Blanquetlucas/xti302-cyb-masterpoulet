@@ -1,0 +1,12 @@
+# C3 - droits sudo du serveur srv-masterpoulet
+# Installé en 0440 root:root par installer.sh, après contrôle par visudo -c.
+
+Defaults    use_pty
+Defaults    logfile="/var/log/sudo.log"
+
+# Administrateurs : tout, mais avec leur mot de passe (pas de NOPASSWD).
+%admins     ALL=(ALL:ALL) ALL
+
+# support n'a pas de mot de passe (connexion par clé seulement), d'où le
+# NOPASSWD, limité à ce seul script qui appartient à root.
+support     ALL=(root) NOPASSWD: /usr/local/sbin/analyse_logs.sh
