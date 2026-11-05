@@ -2,7 +2,7 @@
 
 Contexte B du sujet (cabinet comptable), appliqué à l'entreprise Master Poulet. Serveur Debian 13 (trixie) minimal, VM VirtualBox `debian13-masterpoulet`, second disque de 2 Go pour les sauvegardes. Groupe : Clément Berton, Lucas Blanquet, Aymeric Brevet.
 
-`verifier.sh` compte 109 tests : 90 pour le cahier des charges et 19 pour le bonus (partie 5). Avant le bonus, sur la VM reconstruite par `installer.sh` depuis le snapshot `vierge`, il donne 90/90 juste après l'installation, après une deuxième exécution d'`installer.sh` et après un redémarrage (`docs/captures/verifier_*`).
+`verifier.sh` compte 109 tests : 90 pour le cahier des charges et 19 pour le bonus (partie 5). Avec le bonus, il donne 109/109 sur la VM reconstruite depuis le snapshot `vierge`, aussi après redémarrage. Avant le bonus, sur la VM reconstruite par `installer.sh` depuis le snapshot `vierge`, il donne 90/90 juste après l'installation, après une deuxième exécution d'`installer.sh` et après un redémarrage (`docs/captures/verifier_*`).
 
 ## 1. Tableau de conformité
 
@@ -87,15 +87,14 @@ Pour un répertoire entier : `rsync -aAX --numeric-ids /sauvegardes/<version>/sr
 
 ## 5. Bonus : audits et recommandations ANSSI supplémentaires
 
-**Limite des mesures.** Elles ont été faites sur un clone VirtualBox d'une Kali Rolling, pas sur la Debian 13 du projet. Le clone a été nettoyé (comptes et sudoers de TP retirés, démarrage sans interface graphique), mais il garde les paquets de Kali. Les chiffres montrent donc une évolution, pas l'indice de `srv-masterpoulet`. À refaire sur la VM Debian avant la soutenance.
+Mesures faites sur la Debian 13 du projet : snapshot `vierge` (seul le paquet `lynis` ajouté), puis la même VM après `installer.sh` lancé depuis un clone du dépôt GitHub. ssh-audit est lancé depuis la Kali.
 
-| Étape | Indice Lynis | Suggestions | ssh-audit (`fail` + `warn`) | `verifier.sh` |
+| Étape | Indice Lynis | Suggestions Lynis | ssh-audit (`fail` + `warn`) | `verifier.sh` |
 |---|---|---|---|---|
-| Vierge | 60 | 49 | 14 | |
-| `installer.sh` sans bonus | 66 | 47 | 14 | 85/90 |
-| Avec le bonus, après redémarrage | 75 | 37 | 0 | 108/109 |
+| Vierge | 63 | 49 | 6 + 8 | |
+| Durcie, avec le bonus | 80 | 33 | 0 + 0 | 109/109, aussi après redémarrage |
 
-Le KO restant est D3 : les outils de Kali (kismet, pkexec, chromium...) ne sont pas dans `suid_attendus.txt`, et on n'a pas élargi cette liste pour eux. Les 4 autres KO sans bonus venaient de `sshd_valeur` : OpenSSH 10.5 de Kali écrit les clés de `sshd -T` avec des majuscules, le test accepte maintenant les deux. Détail dans `docs/captures/bonus_*`.
+Les premiers essais du bonus avaient été faits sur un clone de Kali, faute d'accès à la VM : c'est ce qui nous a fait rendre `sshd_valeur` insensible à la casse (l'OpenSSH de Kali écrit les clés de `sshd -T` avec des majuscules). Les chiffres ci-dessus sont ceux de `srv-masterpoulet` (`docs/captures/bonus_*`).
 
 **ssh-audit.** On ne propose plus les courbes NIST, ECDSA, SHA-1 ni les MAC « encrypt-and-MAC ». Un client OpenSSH récent n'en a pas besoin. Testé : `KexAlgorithms=ecdh-sha2-nistp256` est refusé.
 
@@ -109,7 +108,7 @@ Le KO restant est D3 : les outils de Kali (kismet, pkexec, chromium...) ne sont 
 | R36 R, R39 I | Shells en umask 077 ; `sudo` impose 0027 (`umask_override`) pour que les fichiers créés en root ne deviennent pas illisibles par leur groupe |
 | R53 M, R55 I | Aucun fichier sans propriétaire ; répertoire temporaire par utilisateur avec `libpam-tmpdir` |
 
-**Suggestions Lynis appliquées (`test_L_*`).** AUTH-9262 (`libpam-pwquality`), AUTH-9328 (umask), BANN-7126 et BANN-7130 (bannière), DEB-0280 (`libpam-tmpdir`), KRNL-6000 (sysctl), NETW-3200, USB-1000 et STRG-1846 (modules bloqués). Lynis garde STRG-1846 dans sa liste alors que le blocage est en place (`modprobe --showconfig`, testé).
+**Suggestions Lynis appliquées (`test_L_*`).** AUTH-9262 (`libpam-pwquality`), AUTH-9328 (umask), BANN-7126 et BANN-7130 (bannière), DEB-0280 (`libpam-tmpdir`), KRNL-6000 (sysctl), NETW-3200, USB-1000 et STRG-1846 (modules bloqués). Lynis garde STRG-1846 dans sa liste alors que le blocage est en place (`modprobe --showconfig`, testé). Il garde aussi KRNL-6000, mais pour une seule clé : `kernel.modules_disabled`, qu'on n'applique pas exprès (voir plus bas).
 
 **Suggestions non appliquées, et pourquoi.**
 

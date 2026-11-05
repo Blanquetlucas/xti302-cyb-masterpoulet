@@ -1,4 +1,5 @@
-# sudo verifier.sh  (clone Kali reconstruit depuis son snapshot vierge par installer.sh, après redémarrage)
+# sudo verifier.sh  (Debian avec bonus, après redémarrage)
+2026-11-05 11:42:13
 [OK] C1 acces_ssh contient exactement : aymeric clement lucas support 
 [OK] C1 authorized_keys installés (700/600, propriétaire l'utilisateur)
 [OK] C1 les 13 comptes de comptes.csv existent avec les bons groupes
@@ -81,15 +82,15 @@
 [OK] B1 rotation : 7 versions gardées, 1 présentes
 [OK] B1 1 version(s) datée(s), la dernière contient /srv et /etc
 [OK] B2 exécutions de la sauvegarde présentes dans le journal
-[OK] B2 sauvegarde.timer actif et activé (Fri 2026-11-06 02:09:49 EST)
+[OK] B2 sauvegarde.timer actif et activé (Fri 2026-11-06 02:05:52 CET)
 [OK] B3 /sauvegardes en root:admins 750
 [OK] B3 clement liste les sauvegardes, pmercier non
-[OK] B4 restauration testée dans /tmp/user/0/tmp.JPTYnbj8ot : contenu et ACL identiques
+[OK] B4 restauration testée dans /tmp/user/0/tmp.sx4KaYBNZ6 : contenu et ACL identiques
 [OK] D1 les mises à jour de sécurité Debian sont incluses
 [OK] D1 timers apt-daily et apt-daily-upgrade actifs
 [OK] D1 unattended-upgrades installé et activé (apt-config)
 [OK] D2 seul sshd (22/tcp) écoute sur le réseau (+ client DHCP)
-[KO] D3 SUID/SGID inattendus : /usr/bin/fusermount3 /usr/bin/kismet_cap_hak5_wifi_coconut /usr/bin/kismet_cap_linux_bluetooth /usr/bin/kismet_cap_linux_wifi /usr/bin/kismet_cap_nrf_51822 /usr/bin/kismet_cap_nrf_52840 /usr/bin/kismet_cap_nrf_mousejack /usr/bin/kismet_cap_nxp_kw41z /usr/bin/kismet_cap_rz_killerbee /usr/bin/kismet_cap_ti_cc_2531 /usr/bin/kismet_cap_ti_cc_2540 /usr/bin/kismet_cap_ubertooth_one /usr/bin/ntfs-3g /usr/bin/pkexec /usr/bin/plocate /usr/bin/rsh-redone-rlogin /usr/bin/rsh-redone-rsh /usr/lib/chromium/chrome-sandbox /usr/lib/mysql/plugin/auth_pam_tool_dir/auth_pam_tool /usr/lib/xorg/Xorg.wrap /usr/sbin/mount.cifs /usr/sbin/mount.nfs /usr/sbin/pppd 
+[OK] D3 18 fichiers SUID/SGID, tous dans suid_attendus.txt
 [OK] D3 aucun fichier modifiable par tous hors répertoires temporaires
 [OK] R11 1 options sysctl conformes
 [OK] R12 13 options sysctl conformes
@@ -108,4 +109,7 @@
 [OK] BANN-7126 bannière légale en console et en SSH
 [OK] KRNL-6000 3 options sysctl conformes
 [OK] NETW-3200 modules inutiles bloqués (dccp, sctp, rds, tipc, usb-storage, firewire)
---- 108 / 109 tests réussis
+--- 109 / 109 tests réussis
+code de sortie : 0
+rw,nosuid,nodev,noexec,size=1010516k,nr_inodes=1048576,inode64
+kernel.kptr_restrict = 2
