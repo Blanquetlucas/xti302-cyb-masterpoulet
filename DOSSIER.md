@@ -2,7 +2,7 @@
 
 Contexte B du sujet (cabinet comptable), appliqué à l'entreprise Master Poulet. Serveur Debian 13 (trixie) minimal, VM VirtualBox `debian13-masterpoulet`, second disque de 2 Go pour les sauvegardes. Groupe : Clément Berton, Lucas Blanquet, Aymeric Brevet.
 
-`verifier.sh` compte 90 tests. Sur la VM reconstruite par `installer.sh` depuis le snapshot `vierge`, il donne 90/90 juste après l'installation, après une deuxième exécution d'`installer.sh` et après un redémarrage (`docs/captures/verifier_*`).
+`verifier.sh` compte 109 tests : 90 pour le cahier des charges et 19 pour le bonus (partie 5). Avant le bonus, sur la VM reconstruite par `installer.sh` depuis le snapshot `vierge`, il donne 90/90 juste après l'installation, après une deuxième exécution d'`installer.sh` et après un redémarrage (`docs/captures/verifier_*`).
 
 ## 1. Tableau de conformité
 
@@ -85,6 +85,42 @@ Cas testé : un comptable a supprimé `/srv/dossiers_clients/bilan_2025.txt`.
 
 Pour un répertoire entier : `rsync -aAX --numeric-ids /sauvegardes/<version>/srv/rh/ /srv/rh/`, sans `--delete` pour ne pas effacer ce qui a été créé depuis. En cas de doute, on restaure d'abord dans un répertoire temporaire et on compare avec `diff -r`. Le test complet est dans `docs/captures/b4_restauration.txt`.
 
+## 5. Bonus : audits et recommandations ANSSI supplémentaires
+
+**Limite des mesures.** Elles ont été faites sur un clone VirtualBox d'une Kali Rolling, pas sur la Debian 13 du projet. Le clone a été nettoyé (comptes et sudoers de TP retirés, démarrage sans interface graphique), mais il garde les paquets de Kali. Les chiffres montrent donc une évolution, pas l'indice de `srv-masterpoulet`. À refaire sur la VM Debian avant la soutenance.
+
+| Étape | Indice Lynis | Suggestions | ssh-audit (`fail` + `warn`) | `verifier.sh` |
+|---|---|---|---|---|
+| Vierge | 60 | 49 | 14 | |
+| `installer.sh` sans bonus | 66 | 47 | 14 | 85/90 |
+| Avec le bonus, après redémarrage | 75 | 37 | 0 | 108/109 |
+
+Le KO restant est D3 : les outils de Kali (kismet, pkexec, chromium...) ne sont pas dans `suid_attendus.txt`, et on n'a pas élargi cette liste pour eux. Les 4 autres KO sans bonus venaient de `sshd_valeur` : OpenSSH 10.5 de Kali écrit les clés de `sshd -T` avec des majuscules, le test accepte maintenant les deux. Détail dans `docs/captures/bonus_*`.
+
+**ssh-audit.** On ne propose plus les courbes NIST, ECDSA, SHA-1 ni les MAC « encrypt-and-MAC ». Un client OpenSSH récent n'en a pas besoin. Testé : `KexAlgorithms=ecdh-sha2-nistp256` est refusé.
+
+**Recommandations ANSSI (BP-028 v2.0) ajoutées et testées (`test_A_*`).** Niveau : I intermédiaire, R renforcé, M minimal.
+
+| Reco | Ce qui a été fait |
+|---|---|
+| R9 I, R11 I, R12 I, R14 I | `config/sysctl.d/90-masterpoulet.conf` : dmesg, adresses noyau, perf, BPF, SysRq, ptrace, redirections ICMP, routage par la source, `rp_filter`, SYN cookies, liens et FIFO protégés |
+| R28 I | `/tmp` en `nosuid,nodev,noexec`. Comme apt y lance ses scripts debconf, `APT::ExtractTemplates::TempDir` passe à `/var/tmp` (réinstallation d'`openssh-server` et `unattended-upgrade --dry-run` testés) |
+| R29 R, R50 I | `/boot`, `/etc/crontab` et `/etc/cron.*` réservés à root |
+| R36 R, R39 I | Shells en umask 077 ; `sudo` impose 0027 (`umask_override`) pour que les fichiers créés en root ne deviennent pas illisibles par leur groupe |
+| R53 M, R55 I | Aucun fichier sans propriétaire ; répertoire temporaire par utilisateur avec `libpam-tmpdir` |
+
+**Suggestions Lynis appliquées (`test_L_*`).** AUTH-9262 (`libpam-pwquality`), AUTH-9328 (umask), BANN-7126 et BANN-7130 (bannière), DEB-0280 (`libpam-tmpdir`), KRNL-6000 (sysctl), NETW-3200, USB-1000 et STRG-1846 (modules bloqués). Lynis garde STRG-1846 dans sa liste alors que le blocage est en place (`modprobe --showconfig`, testé).
+
+**Suggestions non appliquées, et pourquoi.**
+
+- **FILE-6310, partitions séparées pour `/home` et `/var`** : il faudrait repartitionner à l'installation, et le sujet part d'une Debian déjà installée. Seul `/tmp` est isolé.
+- **LOGG-2154, journaux sur un hôte distant** : on n'a pas de second serveur. C'est la vraie limite : un admin compromis peut effacer les journaux (partie 3).
+- **AUTH-9286, expiration des mots de passe** : les mots de passe ne servent qu'à sudo et à la console, l'accès SSH se fait par clé. Un changement forcé pousse à des mots de passe plus faibles.
+- **BOOT-5122, mot de passe GRUB** : qui accède à l'hyperviseur peut lire le `.vdi` sans passer par GRUB (disque non chiffré).
+- **DEB-0880, `jail.local`** : notre réglage est déjà dans `jail.d`, que les mises à jour n'écrasent pas.
+- **ACCT-9628, auditd (R73)** : il faudrait des règles et du temps pour lire leur volume ; mal réglé, il n'apporterait rien.
+- **`kernel.modules_disabled` (R10) et `kernel.panic_on_oops` (R9)** : le premier bloque tout module jusqu'au redémarrage, le second arrête le seul serveur de la PME sur une simple erreur noyau.
+
 ## Annexe A : écoutes réseau (D2)
 
 `ss -tulpn` sur le serveur installé :
@@ -116,5 +152,6 @@ Vu de l'extérieur, `nmap -sS -p-` et `nmap -sU --top-ports 50` depuis la Kali n
 | /usr/bin/crontab | SGID crontab | écrire dans `/var/spool/cron/crontabs` |
 | /usr/bin/dotlockfile | SGID mail | verrous sur les boîtes aux lettres |
 | /usr/bin/ssh-agent | SGID _ssh | empêche un autre processus de l'utilisateur de lire la mémoire de l'agent |
+| /usr/libexec/pam-tmpdir/pam-tmpdir-helper | SUID root | ajouté par le bonus (R55) : crée le répertoire temporaire de chaque utilisateur dans `/tmp/user` |
 
 Ce sont tous des fichiers des paquets de base de Debian. On aurait pu enlever le bit SUID de `chfn`, `chsh`, `mount`, `umount` et `ssh-keysign`, inutiles sur ce serveur. On ne l'a pas fait : la prochaine mise à jour du paquet le remettrait, sauf à passer par `dpkg-statoverride`, et on a préféré une liste attendue vérifiée automatiquement.

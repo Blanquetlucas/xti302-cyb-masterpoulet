@@ -18,3 +18,4 @@
 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
 /usr/lib/openssh/ssh-keysign
 /usr/sbin/unix_chkpwd
+/usr/libexec/pam-tmpdir/pam-tmpdir-helper

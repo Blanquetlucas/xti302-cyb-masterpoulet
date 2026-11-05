@@ -1,0 +1,111 @@
+# sudo verifier.sh  (clone Kali reconstruit depuis son snapshot vierge par installer.sh, après redémarrage)
+[OK] C1 acces_ssh contient exactement : aymeric clement lucas support 
+[OK] C1 authorized_keys installés (700/600, propriétaire l'utilisateur)
+[OK] C1 les 13 comptes de comptes.csv existent avec les bons groupes
+[OK] C1 au moins 2 utilisateurs par groupe métier
+[OK] C1 groupes admins, support, acces_ssh et métier présents
+[OK] C1 aucun doublon de compte, de groupe ou d'UID
+[OK] C2 nouveau fichier de commun : comptables écrit, stagiaire lit seulement
+[OK] C2 nouveau fichier de dossiers_clients : direction lit, rh et stagiaire non
+[OK] C2 nouveau fichier de rh : direction lit, comptables non
+[OK] C2 o::--- (accès et défaut) sur les 4 répertoires
+[OK] C2 comptables (mlefevre) a rwx sur /srv/commun
+[OK] C2 direction (pmercier) a rwx sur /srv/commun
+[OK] C2 rh (sgarnier) a rwx sur /srv/commun
+[OK] C2 stagiaire (ebrun) a r-x sur /srv/commun
+[OK] C2 les comptables lisent les fichiers déposés par les stagiaires
+[OK] C2 comptables (mlefevre) a rwx sur /srv/commun/depot
+[OK] C2 direction (pmercier) a rwx sur /srv/commun/depot
+[OK] C2 rh (sgarnier) a rwx sur /srv/commun/depot
+[OK] C2 stagiaire (ebrun) a -wx sur /srv/commun/depot
+[OK] C2 un stagiaire (ebrun) peut déposer un fichier dans depot et relire le sien
+[OK] C2 un stagiaire ne peut pas lister depot
+[OK] C2 un stagiaire (yfaure) ne lit ni n'écrit le dépôt d'un autre (ebrun)
+[OK] C2 sticky bit sur depot : yfaure ne peut pas supprimer le fichier de ebrun
+[OK] C2 comptables (mlefevre) a rwx sur /srv/dossiers_clients
+[OK] C2 direction (pmercier) a r-x sur /srv/dossiers_clients
+[OK] C2 rh (sgarnier) a --- sur /srv/dossiers_clients
+[OK] C2 stagiaire (ebrun) a --- sur /srv/dossiers_clients
+[OK] C2 comptables (mlefevre) a --- sur /srv/rh
+[OK] C2 direction (pmercier) a r-x sur /srv/rh
+[OK] C2 rh (sgarnier) a rwx sur /srv/rh
+[OK] C2 stagiaire (ebrun) a --- sur /srv/rh
+[OK] C3 pas de NOPASSWD pour les administrateurs
+[OK] C3 les administrateurs ont sudo
+[OK] C3 aucun autre compte n'a sudo (compte d'installation compris)
+[OK] C3 fichiers sudoers en 0440 root et syntaxe valide (visudo -c)
+[OK] C3 le groupe sudo est vide
+[OK] C3 scripts de /usr/local/sbin en root:root 755 (support ne peut pas modifier analyse_logs.sh)
+[OK] C3 aucun fichier inattendu dans /etc/sudoers.d
+[OK] C3 le compte support ne peut lancer que analyse_logs.sh
+[OK] C4 3 administrateur(s) avec mot de passe (accès console de secours)
+[OK] C4 sgarnier ne peut pas lister le home de mlefevre
+[OK] C4 HOME_MODE 0700 dans login.defs
+[OK] C4 répertoires personnels en 700
+[OK] C4 root est verrouillé
+[OK] S1 sshd -T : clé uniquement (password et kbdinteractive à no)
+[OK] S1 vraie tentative : le serveur ne propose que publickey
+[OK] S2 connexion root refusée (PermitRootLogin no)
+[OK] S2 vraie tentative de connexion root refusée
+[OK] S3 AllowGroups acces_ssh
+[OK] S3 pas d'AllowUsers qui contournerait AllowGroups
+[OK] S4 inactivité : ChannelTimeout session=10m, client muet coupé après 600 s
+[OK] S4 MaxAuthTries 3 (4 au plus)
+[OK] S4 TMOUT=600 en lecture seule pour les shells de connexion
+[OK] S5 config dans sshd_config.d et sshd -t valide
+[OK] S5 aucun autre fichier ne réactive mot de passe ou root
+[OK] S5 service ssh actif et activé
+[OK] SA ssh-audit : ni NIST, ni SHA-1, ni ECDSA, MAC en encrypt-then-MAC
+[OK] SA vraie tentative : échange de clés NIST refusé
+[OK] J1 fail2ban actif et activé
+[OK] J1 jail sshd active (maxretry 5, bantime 900 s)
+[OK] J1 fail2ban lit journald et bannit via nftables
+[OK] J1 table nftables de fail2ban présente
+[OK] J2 chaîne forward en drop
+[OK] J2 nftables actif et activé (règles rechargées au démarrage)
+[OK] J2 pas de flush ruleset : la table fail2ban survit au rechargement
+[OK] J2 politique par défaut de la chaîne input : drop
+[OK] J2 règles lo, invalid, established et SSH présentes
+[OK] J2 aucun autre port ouvert que 22
+[OK] J3 journald écrit bien dans /var/log/journal
+[OK] J3 journal persistant (Storage=persistent, /var/log/journal)
+[OK] J4 analyse_logs.sh renvoie 2 avec un seuil à 0
+[OK] J4 arguments invalides refusés (code 1)
+[OK] J4 journalctl en --no-pager, pager neutralisé
+[OK] J4 rapport complet (échecs par IP, comptes visés, réussites), code 0 sous le seuil
+[OK] J4 support lance analyse_logs.sh via sudo sans mot de passe
+[OK] J4 support ne peut pas lancer bash ni journalctl en root
+[OK] B1 droits et ACL conservés dans la sauvegarde
+[OK] B1 /sauvegardes monté depuis /dev/sdb (second disque, UUID dans fstab)
+[OK] B1 une seule version pour l'instant, sauvegarde.sh utilise --link-dest
+[OK] B1 rotation : 7 versions gardées, 1 présentes
+[OK] B1 1 version(s) datée(s), la dernière contient /srv et /etc
+[OK] B2 exécutions de la sauvegarde présentes dans le journal
+[OK] B2 sauvegarde.timer actif et activé (Fri 2026-11-06 02:09:49 EST)
+[OK] B3 /sauvegardes en root:admins 750
+[OK] B3 clement liste les sauvegardes, pmercier non
+[OK] B4 restauration testée dans /tmp/user/0/tmp.JPTYnbj8ot : contenu et ACL identiques
+[OK] D1 les mises à jour de sécurité Debian sont incluses
+[OK] D1 timers apt-daily et apt-daily-upgrade actifs
+[OK] D1 unattended-upgrades installé et activé (apt-config)
+[OK] D2 seul sshd (22/tcp) écoute sur le réseau (+ client DHCP)
+[KO] D3 SUID/SGID inattendus : /usr/bin/fusermount3 /usr/bin/kismet_cap_hak5_wifi_coconut /usr/bin/kismet_cap_linux_bluetooth /usr/bin/kismet_cap_linux_wifi /usr/bin/kismet_cap_nrf_51822 /usr/bin/kismet_cap_nrf_52840 /usr/bin/kismet_cap_nrf_mousejack /usr/bin/kismet_cap_nxp_kw41z /usr/bin/kismet_cap_rz_killerbee /usr/bin/kismet_cap_ti_cc_2531 /usr/bin/kismet_cap_ti_cc_2540 /usr/bin/kismet_cap_ubertooth_one /usr/bin/ntfs-3g /usr/bin/pkexec /usr/bin/plocate /usr/bin/rsh-redone-rlogin /usr/bin/rsh-redone-rsh /usr/lib/chromium/chrome-sandbox /usr/lib/mysql/plugin/auth_pam_tool_dir/auth_pam_tool /usr/lib/xorg/Xorg.wrap /usr/sbin/mount.cifs /usr/sbin/mount.nfs /usr/sbin/pppd 
+[OK] D3 aucun fichier modifiable par tous hors répertoires temporaires
+[OK] R11 1 options sysctl conformes
+[OK] R12 13 options sysctl conformes
+[OK] R14 5 options sysctl conformes
+[OK] R28 apt extrait ses scripts dans /var/tmp (mises à jour possibles malgré noexec)
+[OK] R28 vraie tentative : un programme copié dans /tmp ne s'exécute pas
+[OK] R28 /tmp monté nosuid,nodev,noexec
+[OK] R29 /boot réservé à root
+[OK] R36 umask 077 dans un shell de connexion et dans login.defs
+[OK] R39 sudo impose son umask (umask_override)
+[OK] R50 crontab, cron.d, shadow et gshadow protégés
+[OK] R53 aucun fichier sans utilisateur ou groupe connu
+[OK] R55 répertoire temporaire par utilisateur (pam_tmpdir)
+[OK] R9 6 options sysctl conformes
+[OK] AUTH-9262 qualité des mots de passe contrôlée (pam_pwquality)
+[OK] BANN-7126 bannière légale en console et en SSH
+[OK] KRNL-6000 3 options sysctl conformes
+[OK] NETW-3200 modules inutiles bloqués (dccp, sctp, rds, tipc, usb-storage, firewire)
+--- 108 / 109 tests réussis
