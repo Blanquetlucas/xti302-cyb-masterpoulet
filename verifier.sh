@@ -85,8 +85,9 @@ verifier_droits() {
     fi
 }
 
+# tolower : selon la version d'OpenSSH, sshd -T écrit les clés en minuscules ou non
 sshd_valeur() {
-    sshd -T 2>/dev/null | awk -v k="$1" '$1 == k { $1 = ""; sub(/^ /, ""); print; exit }'
+    sshd -T 2>/dev/null | awk -v k="$1" 'tolower($1) == k { $1 = ""; sub(/^ /, ""); print; exit }'
 }
 
 actif_et_active() {
@@ -816,6 +817,163 @@ test_D3_suid() {
                            || ko "D3" "SUID/SGID inattendus : $(echo "$inattendus" | tr '\n' ' ')"
 }
 
+# =================================== Bonus : ssh-audit, ANSSI, Lynis
+
+test_SA_algorithmes() {
+    local k m h c mauvais=""
+    k="$(sshd_valeur kexalgorithms)"; m="$(sshd_valeur macs)"; h="$(sshd_valeur hostkeyalgorithms)"
+    [[ -n "$k" && ! "$k" =~ nistp|sha1|group1[46]- ]] || mauvais="$mauvais kex"
+    [[ -n "$h" && ! "$h" =~ ecdsa|ssh-rsa|dss ]] || mauvais="$mauvais hostkey"
+    for c in ${m//,/ }; do
+        [[ "$c" == *-etm@openssh.com && "$c" != *sha1* && "$c" != umac-64* ]] || mauvais="$mauvais $c"
+    done
+    [[ -n "$m" && -z "$mauvais" ]] && ok "SA" "ssh-audit : ni NIST, ni SHA-1, ni ECDSA, MAC en encrypt-then-MAC" \
+                                   || ko "SA" "algorithmes SSH faibles :$mauvais"
+}
+
+test_SA_tentative_nistp() {
+    local sortie
+    sortie="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 \
+        -o KexAlgorithms=ecdh-sha2-nistp256 "$(membre admins)@127.0.0.1" true 2>&1)"
+    [[ "$sortie" == *"no matching key exchange"* ]] && ok "SA" "vraie tentative : échange de clés NIST refusé" \
+                                                    || ko "SA" "échange NIST : $sortie"
+}
+
+# $1 = recommandation, puis des couples clé=valeur
+verifier_sysctl() {
+    local id="$1" kv mauvais=""
+    shift
+    for kv in "$@"; do
+        [[ "$(sysctl -n "${kv%%=*}" 2>/dev/null)" == "${kv#*=}" ]] || mauvais="$mauvais ${kv%%=*}"
+    done
+    [[ -z "$mauvais" ]] && ok "$id" "$# options sysctl conformes" || ko "$id" "sysctl non conformes :$mauvais"
+}
+
+test_A_R9_noyau() {
+    verifier_sysctl R9 kernel.dmesg_restrict=1 kernel.kptr_restrict=2 kernel.perf_event_paranoid=2 \
+        kernel.randomize_va_space=2 kernel.sysrq=0 kernel.unprivileged_bpf_disabled=1
+}
+
+test_A_R11_yama() {
+    verifier_sysctl R11 kernel.yama.ptrace_scope=1
+}
+
+test_A_R12_reseau() {
+    verifier_sysctl R12 net.ipv4.ip_forward=0 net.ipv4.conf.all.accept_redirects=0 \
+        net.ipv4.conf.default.accept_redirects=0 net.ipv4.conf.all.secure_redirects=0 \
+        net.ipv4.conf.all.send_redirects=0 net.ipv4.conf.default.send_redirects=0 \
+        net.ipv4.conf.all.accept_source_route=0 net.ipv4.conf.all.rp_filter=1 \
+        net.ipv4.icmp_ignore_bogus_error_responses=1 net.ipv4.tcp_rfc1337=1 net.ipv4.tcp_syncookies=1 \
+        net.ipv6.conf.all.accept_redirects=0 net.ipv6.conf.all.accept_source_route=0
+}
+
+test_A_R14_fichiers() {
+    verifier_sysctl R14 fs.suid_dumpable=0 fs.protected_fifos=2 fs.protected_regular=2 \
+        fs.protected_symlinks=1 fs.protected_hardlinks=1
+}
+
+test_A_R28_tmp_options() {
+    local o
+    o=",$(findmnt -no OPTIONS /tmp),"
+    [[ "$o" == *,nosuid,* && "$o" == *,nodev,* && "$o" == *,noexec,* ]] \
+        && ok "R28" "/tmp monté nosuid,nodev,noexec" \
+        || ko "R28" "options de /tmp : $o"
+}
+
+test_A_R28_tmp_execution() {
+    local f
+    f="$(mktemp -p /tmp)"
+    A_SUPPRIMER+=("$f")
+    cp /bin/true "$f"
+    chmod 755 "$f"
+    if "$f" 2>/dev/null; then
+        ko "R28" "un programme copié dans /tmp s'exécute"
+    else
+        ok "R28" "vraie tentative : un programme copié dans /tmp ne s'exécute pas"
+    fi
+}
+
+test_A_R28_apt() {
+    [[ "$(apt-config dump APT::ExtractTemplates::TempDir)" == *'"/var/tmp"'* ]] \
+        && ok "R28" "apt extrait ses scripts dans /var/tmp (mises à jour possibles malgré noexec)" \
+        || ko "R28" "apt extrait ses scripts dans /tmp : les mises à jour échoueront"
+}
+
+test_A_R29_boot() {
+    [[ "$(stat -c '%U %a' /boot)" == "root 700" ]] && ok "R29" "/boot réservé à root" \
+                                                   || ko "R29" "/boot en $(stat -c '%U %a' /boot)"
+}
+
+test_A_R36_umask() {
+    local v
+    v="$(sudo -u "$(membre rh)" bash -lc umask 2>/dev/null)"
+    if [[ "$v" == 0077 ]] && grep -qE '^\s*UMASK\s+0?77\s*$' /etc/login.defs; then
+        ok "R36" "umask 077 dans un shell de connexion et dans login.defs"
+    else
+        ko "R36" "umask du shell : '$v', ou UMASK absent de login.defs"
+    fi
+}
+
+test_A_R39_umask_sudo() {
+    sudo -l -U "$(membre admins)" 2>/dev/null | grep -q 'umask_override' \
+        && ok "R39" "sudo impose son umask (umask_override)" \
+        || ko "R39" "umask_override absent de sudoers"
+}
+
+test_A_R50_fichiers_sensibles() {
+    local f mauvais=""
+    [[ "$(stat -c '%U %a' /etc/crontab)" == "root 600" ]] || mauvais="$mauvais /etc/crontab"
+    [[ "$(stat -c '%U %a' /etc/cron.d)" == "root 700" ]] || mauvais="$mauvais /etc/cron.d"
+    for f in /etc/shadow /etc/gshadow; do
+        [[ "$(stat -c '%U %a' "$f")" =~ ^root\ (640|600)$ ]] || mauvais="$mauvais $f"
+    done
+    [[ -z "$mauvais" ]] && ok "R50" "crontab, cron.d, shadow et gshadow protégés" \
+                        || ko "R50" "droits trop larges :$mauvais"
+}
+
+test_A_R53_sans_proprietaire() {
+    local fs t
+    t="$(for fs in $(findmnt -rn -t ext4,ext3,ext2,xfs,btrfs,vfat -o TARGET); do
+        find "$fs" -xdev \( -nouser -o -nogroup \) 2>/dev/null; done | head -5)"
+    [[ -z "$t" ]] && ok "R53" "aucun fichier sans utilisateur ou groupe connu" \
+                  || ko "R53" "sans propriétaire : $(echo "$t" | tr '\n' ' ')"
+}
+
+test_A_R55_tmpdir() {
+    grep -q pam_tmpdir /etc/pam.d/common-session \
+        && ok "R55" "répertoire temporaire par utilisateur (pam_tmpdir)" \
+        || ko "R55" "pam_tmpdir absent de common-session"
+}
+
+test_L_AUTH9262_mots_de_passe() {
+    grep -q pam_pwquality /etc/pam.d/common-password \
+        && ok "AUTH-9262" "qualité des mots de passe contrôlée (pam_pwquality)" \
+        || ko "AUTH-9262" "pam_pwquality absent de common-password"
+}
+
+test_L_KRNL6000_sysctl() {
+    verifier_sysctl KRNL-6000 dev.tty.ldisc_autoload=0 net.core.bpf_jit_harden=2 net.ipv4.conf.all.log_martians=1
+}
+
+test_L_NETW3200_modules() {
+    local m c manque=""
+    c="$(modprobe --showconfig 2>/dev/null)"
+    for m in dccp sctp rds tipc usb_storage firewire_core; do
+        grep -qx "install $m /bin/false" <<< "$c" || manque="$manque $m"
+    done
+    [[ -z "$manque" ]] && ok "NETW-3200" "modules inutiles bloqués (dccp, sctp, rds, tipc, usb-storage, firewire)" \
+                       || ko "NETW-3200" "modules non bloqués :$manque"
+}
+
+test_L_BANN7126_banniere() {
+    if grep -q 'Master Poulet' /etc/issue && grep -q 'Master Poulet' /etc/issue.net \
+       && [[ "$(sshd_valeur banner)" == /etc/issue.net ]]; then
+        ok "BANN-7126" "bannière légale en console et en SSH"
+    else
+        ko "BANN-7126" "bannière absente de /etc/issue, /etc/issue.net ou de sshd"
+    fi
+}
+
 # ================================================================ main
 
 main() {
@@ -831,7 +989,7 @@ main() {
     TMPD="$(mktemp -d)"
 
     local p f
-    for p in C S J B D; do
+    for p in C S J B D A L; do
         for f in $(declare -F | awk '{ print $3 }' | grep "^test_$p"); do
             "$f"
         done

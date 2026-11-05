@@ -1,0 +1,3 @@
+// /tmp est en noexec (ANSSI R28) : apt y extrait sinon les scripts debconf des
+// paquets et ne peut plus les lancer pendant une mise à jour.
+APT::ExtractTemplates::TempDir "/var/tmp";

@@ -13,7 +13,7 @@ CONF="$DIR/config"
 SECRETS=""
 POINT_SAUV=/sauvegardes
 PAQUETS=(sudo acl rsync nftables fail2ban python3-systemd unattended-upgrades
-         apt-listchanges shellcheck)
+         apt-listchanges shellcheck libpam-tmpdir libpam-pwquality)
 
 info()   { echo "==> $*"; }
 erreur() { echo "installer: $*" >&2; }
@@ -256,6 +256,59 @@ fichiers_ecrivables() {
     done
 }
 
+# --- Bonus : recommandations ANSSI et suggestions Lynis ---
+ligne_login_defs() {
+    if grep -qE "^\s*$1\s" /etc/login.defs; then
+        sed -i -E "s/^\s*$1\s.*/$1\t$2/" /etc/login.defs
+    else
+        printf '%s\t%s\n' "$1" "$2" >> /etc/login.defs
+    fi
+}
+
+# Avant ssh_durci : sshd lit /etc/issue.net (Banner)
+bannieres() {
+    info "bannières"
+    install -o root -g root -m 0644 "$CONF/issue/issue" /etc/issue
+    install -o root -g root -m 0644 "$CONF/issue/issue" /etc/issue.net
+}
+
+bonus() {
+    info "bonus : ANSSI et Lynis"
+    # R9, R11, R12, R14
+    install -o root -g root -m 0644 "$CONF/sysctl.d/90-masterpoulet.conf" /etc/sysctl.d/
+    sysctl -q -p /etc/sysctl.d/90-masterpoulet.conf
+
+    # R28 : /tmp en noexec, apt doit alors extraire ses scripts ailleurs
+    install -o root -g root -m 0644 "$CONF/apt/90templates-var-tmp" /etc/apt/apt.conf.d/
+    install -d -m 0755 /etc/systemd/system/tmp.mount.d
+    install -o root -g root -m 0644 "$CONF/systemd/tmp.mount.d/durcissement.conf" /etc/systemd/system/tmp.mount.d/
+    systemctl daemon-reload
+    if systemctl is-active -q tmp.mount; then
+        mount -o remount,nosuid,nodev,noexec /tmp
+    else
+        systemctl start tmp.mount
+    fi
+
+    # R36 : shells en 077 ; Lynis AUTH-9328 lit login.defs
+    install -o root -g root -m 0644 "$CONF/profile.d/umask.sh" /etc/profile.d/umask.sh
+    ligne_login_defs UMASK 077
+
+    # R29 : /boot réservé à root
+    chmod 700 /boot
+
+    # R50, Lynis FILE-7524 : la planification ne regarde que root
+    chmod 600 /etc/crontab
+    local d
+    for d in /etc/cron.d /etc/cron.hourly /etc/cron.daily /etc/cron.weekly /etc/cron.monthly; do
+        if [[ -d "$d" ]]; then
+            chmod 700 "$d"
+        fi
+    done
+
+    # Lynis NETW-3200, USB-1000, STRG-1846
+    install -o root -g root -m 0644 "$CONF/modprobe.d/masterpoulet.conf" /etc/modprobe.d/
+}
+
 main() {
     lire_options "$@"
     if [[ $EUID -ne 0 ]]; then
@@ -269,6 +322,7 @@ main() {
     sudoers
     mots_de_passe_admins
     verrouiller
+    bannieres
     ssh_durci
     parefeu
     fail2ban
@@ -278,6 +332,7 @@ main() {
     disque
     planification
     fichiers_ecrivables
+    bonus
     info "installation terminée, lancer : sudo verifier.sh"
 }
 

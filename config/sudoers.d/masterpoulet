@@ -3,6 +3,9 @@
 
 Defaults    use_pty
 Defaults    logfile="/var/log/sudo.log"
+# Bonus ANSSI R39 : sans umask_override, l'umask 077 du shell (R36) s'ajouterait
+# et les fichiers créés sous sudo seraient illisibles par leur groupe.
+Defaults    umask=0027, umask_override
 
 # Administrateurs : tout, mais avec leur mot de passe (pas de NOPASSWD).
 %admins     ALL=(ALL:ALL) ALL

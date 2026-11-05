@@ -85,6 +85,17 @@ ls -l /sauvegardes
 
 La procédure de restauration est dans DOSSIER.md, partie 4.
 
+## Audits (bonus)
+
+Lynis et ssh-audit ne sont pas installés par `installer.sh` : ce sont des outils de contrôle, pas des services du serveur. Les résultats et les choix sont dans DOSSIER.md, partie 5.
+
+```
+sudo apt install lynis
+sudo lynis audit system --quick
+sudo grep '^hardening_index\|^suggestion' /var/log/lynis-report.dat
+ssh-audit 192.168.65.5        # depuis la Kali
+```
+
 ## Débannir une IP
 
 ```
