@@ -87,7 +87,7 @@ La procédure de restauration est dans DOSSIER.md, partie 4.
 
 ## Audits (bonus)
 
-Lynis et ssh-audit ne sont pas installés par `installer.sh` : ce sont des outils de contrôle, pas des services du serveur. Les résultats et les choix sont dans DOSSIER.md, partie 5.
+Lynis et ssh-audit ne sont pas installés par `installer.sh` : ce sont des outils de contrôle, pas des services du serveur. Les résultats et les choix sont dans DOSSIER.md, annexe C.
 
 ```
 sudo apt install lynis
