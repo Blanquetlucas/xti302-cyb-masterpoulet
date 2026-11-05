@@ -1,6 +1,6 @@
 # Dossier XTI302-CYB : serveur srv-masterpoulet
 
-Contexte B du sujet (cabinet comptable), appliqué à l'entreprise Master Poulet. Serveur Debian 13 (trixie) minimal, VM VirtualBox `debian13-masterpoulet`, second disque de 2 Go pour les sauvegardes. Groupe : Clément Berton, Lucas Blanquet, Aymeric.
+Contexte B du sujet (cabinet comptable), appliqué à l'entreprise Master Poulet. Serveur Debian 13 (trixie) minimal, VM VirtualBox `debian13-masterpoulet`, second disque de 2 Go pour les sauvegardes. Groupe : Clément Berton, Lucas Blanquet, Aymeric Brevet.
 
 `verifier.sh` compte 90 tests. Sur la VM reconstruite par `installer.sh` depuis le snapshot `vierge`, il donne 90/90 juste après l'installation, après une deuxième exécution d'`installer.sh` et après un redémarrage (`docs/captures/verifier_*`).
 
@@ -12,7 +12,7 @@ Les tests sont les fonctions de `verifier.sh` ; leur nom commence par l'identifi
 |---|---|---|---|
 | C1 | `creer_comptes.sh` lit `comptes.csv` (en-tête, lignes vides et `\r` ignorés, login et groupes validés par regex), crée groupes et comptes absents, ajoute les groupes secondaires avec `usermod -a`, installe `authorized_keys` (700/600). Relancé, il ne crée rien. | 6 tests `test_C1_*` (comptes du CSV et leurs groupes, doublons, `acces_ssh`, clés) | BP-028 R33 ; SSH R21 |
 | C2 | Répertoires en `root:root 0770`, droits par ACL nommées (`g:comptables:rwx`...), mêmes entrées en ACL par défaut, `o::---`. `depot` : `g:stagiaire:-wx`, aucune entrée stagiaire dans l'ACL par défaut, sticky bit. | 25 tests : une case du tableau par test, `o::---`, ACL par défaut sur un fichier créé, 5 cas sur `depot` | BP-028 R50, R54 |
-| C3 | `/etc/sudoers.d/masterpoulet` (0440, contrôlé par `visudo -c`) : `%admins ALL=(ALL:ALL) ALL`, `support` limité à `analyse_logs.sh`. Groupe `sudo` vidé. Scripts en `root:root 0755`. | 8 tests `test_C3_*` (`sudo -l -U` pour chaque compte, droits des sudoers, scripts) | BP-028 R30, R38, R39 |
+| C3 | `/etc/sudoers.d/masterpoulet` (0440, contrôlé par `visudo -c`) : `%admins ALL=(ALL:ALL) ALL`, `support` limité à `analyse_logs.sh`. Groupe `sudo` vidé. Scripts en `root:root 0755`. | 8 tests `test_C3_*` (`sudo -l -U` pour chaque compte, droits des sudoers, scripts) | BP-028 R30, R38, R39 (en partie : `use_pty` et journal sudo ; `noexec` bloquerait apt lancé par les admins) |
 | C4 | `passwd -l root` après avoir vérifié qu'un admin a un mot de passe, home en 700, `HOME_MODE 0700`. | 5 tests `test_C4_*` | BP-028 R33, R50 |
 | S1 | `PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `AuthenticationMethods publickey`. | `sshd -T` + vraie tentative par mot de passe | SSH R17 |
 | S2 | `PermitRootLogin no`, root hors de `acces_ssh`. | `sshd -T` + vraie tentative en root | SSH R21 |

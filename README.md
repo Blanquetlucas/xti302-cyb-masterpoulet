@@ -2,7 +2,7 @@
 
 Contexte B du sujet (cabinet comptable), appliqué à l'entreprise Master Poulet. Les groupes métier et les répertoires de `/srv` gardent les noms du sujet : `comptables`, `rh`, `direction`, `stagiaire`.
 
-Groupe : Clément Berton, Lucas Blanquet, Aymeric.
+Groupe : Clément Berton, Lucas Blanquet, Aymeric Brevet.
 
 | Membre | Partie |
 |---|---|
