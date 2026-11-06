@@ -6,7 +6,7 @@ Groupe : Clément Berton, Lucas Blanquet, Aymeric Brevet.
 
 | Membre | Partie |
 |---|---|
-| Clément | comptes, ACL, sudo, sauvegardes : `comptes.csv`, `creer_comptes.sh`, `config/sudoers.d`, `sauvegarde.sh`, `config/systemd` |
+| Clément | comptes, ACL, sudo, sauvegardes : `comptes.csv`, `creer_comptes.sh`, `config/sudoers.d`, `sauvegarde.sh`, `config/systemd` + BONUS |
 | Lucas | SSH, fail2ban, nftables, journaux, système, installation : `config/ssh`, `config/fail2ban`, `config/nftables.conf`, `config/journald.conf.d`, `analyse_logs.sh`, `config/apt`, `installer.sh` |
 | Aymeric | tests d'attaque depuis sa Kali (scan de ports, force brute SSH, bannissement fail2ban) |
 | tous | `verifier.sh`, `DOSSIER.md` |
